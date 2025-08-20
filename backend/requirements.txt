@@ -1,0 +1,13 @@
+
+# Django Core - Required
+Django==4.2.7
+djangorestframework==3.14.0
+
+# GraphQL - Required 
+graphene-django==3.1.5
+
+# PostgreSQL - Required
+psycopg2-binary==2.9.7
+
+# CORS for React frontend
+django-cors-headers==4.3.1
