@@ -56,6 +56,9 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 
+# Claude AI specific
+.claude/
+
 # Environment variables
 .env
 .env.*
