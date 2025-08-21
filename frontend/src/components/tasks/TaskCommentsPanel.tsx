@@ -14,6 +14,14 @@ const TaskCommentsPanel: React.FC<TaskCommentsPanelProps> = ({ task }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Must call hooks before any conditional returns
+  const [addTaskComment] = useMutation(ADD_TASK_COMMENT, {
+    refetchQueries: task?.project?.id ? [
+      { query: TASKS_BY_PROJECT, variables: { projectId: task.project.id } }
+    ] : [],
+    errorPolicy: 'all'
+  });
+
   // Early return with loading state if task is not properly loaded
   if (!task || !task.id || !task.project || !task.project.id) {
     return (
@@ -25,13 +33,6 @@ const TaskCommentsPanel: React.FC<TaskCommentsPanelProps> = ({ task }) => {
       </div>
     );
   }
-
-  const [addTaskComment] = useMutation(ADD_TASK_COMMENT, {
-    refetchQueries: task.project?.id ? [
-      { query: TASKS_BY_PROJECT, variables: { projectId: task.project.id } }
-    ] : [],
-    errorPolicy: 'all'
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

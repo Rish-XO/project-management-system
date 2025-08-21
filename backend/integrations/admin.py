@@ -137,7 +137,8 @@ class IntegrationLogAdmin(admin.ModelAdmin):
     delete_old_logs.short_description = 'Delete logs older than 30 days'
 
 
-@admin.register(IntegrationSettings)
+# Temporarily disabled due to migration issue
+# @admin.register(IntegrationSettings)
 class IntegrationSettingsAdmin(admin.ModelAdmin):
     """Admin interface for integration settings."""
     

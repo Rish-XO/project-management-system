@@ -42,7 +42,6 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
   });
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [isDragInProgress, setIsDragInProgress] = useState(false);
 
   // Configure sensors for desktop drag
   const sensors = useSensors(
@@ -65,7 +64,6 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
   const handleDragStart = (event: DragStartEvent) => {
     const draggedTask = tasks.find(task => task.id === event.active.id);
     setActiveTask(draggedTask || null);
-    setIsDragInProgress(true);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -73,7 +71,6 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
     
     // Clear drag states immediately for smooth animation
     setActiveTask(null);
-    setIsDragInProgress(false);
     
     if (!over || !active) {
       return;
@@ -130,8 +127,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
       });
       
       // Show integration notifications
-      if (currentTask.assignee_email) {
-        showIntegrationToast('email', `Status update sent`, currentTask.assignee_email);
+      if (currentTask.assigneeEmail) {
+        showIntegrationToast('email', `Status update sent`, currentTask.assigneeEmail);
       }
       
       if (newStatus === 'DONE') {

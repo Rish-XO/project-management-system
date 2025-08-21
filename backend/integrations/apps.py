@@ -8,12 +8,8 @@ class IntegrationsConfig(AppConfig):
 
     def ready(self):
         """Import signals when Django starts."""
-        import integrations.signals
-        
-        # Create default integration settings
         try:
-            from integrations.signals import create_default_integration_settings
-            create_default_integration_settings()
+            import integrations.signals
         except Exception:
-            # Skip during migrations
+            # Skip during initialization
             pass
