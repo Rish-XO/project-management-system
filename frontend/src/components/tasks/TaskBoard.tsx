@@ -50,20 +50,20 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
     })
   );
 
-  if (loading) return <LoadingSpinner text="Loading tasks..." />;
-  if (error) return <ErrorMessage message="Failed to load tasks" onRetry={() => refetch()} />;
-
   const serverTasks: Task[] = data?.tasksByProject || [];
   
   // Use optimistic tasks if available, otherwise use server data
   const tasks = optimisticTasks.length > 0 ? optimisticTasks : serverTasks;
   
-  // Update optimistic tasks when server data changes
+  // Update optimistic tasks when server data changes (MUST be before early returns)
   React.useEffect(() => {
     if (serverTasks.length > 0 && optimisticTasks.length === 0) {
       setOptimisticTasks(serverTasks);
     }
   }, [serverTasks, optimisticTasks.length]);
+
+  if (loading) return <LoadingSpinner text="Loading tasks..." />;
+  if (error) return <ErrorMessage message="Failed to load tasks" onRetry={() => refetch()} />;
 
   const todoTasks = tasks.filter(task => task.status === 'TODO');
   const inProgressTasks = tasks.filter(task => task.status === 'IN_PROGRESS');
