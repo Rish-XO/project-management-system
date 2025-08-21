@@ -11,13 +11,15 @@ interface EditTaskModalProps {
   onClose: () => void;
   task: Task;
   projectId?: string; // Add optional projectId prop for safety
+  onTaskUpdated?: () => void; // Callback when task is successfully updated
 }
 
 const EditTaskModal: React.FC<EditTaskModalProps> = ({
   isOpen,
   onClose,
   task,
-  projectId
+  projectId,
+  onTaskUpdated
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -28,13 +30,17 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
   const [updateTask] = useMutation(UPDATE_TASK, {
     refetchQueries: safeProjectId ? [
       { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } }
-    ] : []
+    ] : [],
+    awaitRefetchQueries: true,
+    errorPolicy: 'all'
   });
 
   const [updateTaskStatus] = useMutation(UPDATE_TASK_STATUS, {
     refetchQueries: safeProjectId ? [
       { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } }
-    ] : []
+    ] : [],
+    awaitRefetchQueries: true,
+    errorPolicy: 'all'
   });
 
   const formFields = [
@@ -129,6 +135,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
         });
 
         if (result.data?.updateTaskStatus?.success) {
+          onTaskUpdated?.(); // Notify parent that task was updated
           onClose();
         } else {
           setErrors(result.data?.updateTaskStatus?.errors || ['Failed to update task status']);
@@ -160,6 +167,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
               }
             });
           }
+          onTaskUpdated?.(); // Notify parent that task was updated
           onClose();
         } else {
           setErrors(result.data?.updateTask?.errors || ['Failed to update task']);

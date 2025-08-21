@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ApolloProvider } from '@apollo/client';
+import { ApolloProvider, useQuery } from '@apollo/client';
 import { apolloClient } from './appollo';
+import { TASK_DETAIL } from './graphql/queries';
 import { Organization, Project, Task } from './types';
 import OrganizationSelector from './components/organizations/OrganizationSelector';
 import ProjectList from './components/projects/ProjectList';
@@ -9,8 +10,7 @@ import CreateProjectModal from './components/projects/CreateProjectModal';
 import EditProjectModal from './components/projects/EditProjectModal';
 import CreateTaskModal from './components/tasks/CreateTaskModal';
 import EditTaskModal from './components/tasks/EditTaskModal';
-import TaskCommentsPanel from './components/tasks/TaskCommentsPanel';
-import Modal from './components/common/Modal';
+import TaskDetailModal from './components/tasks/TaskDetailModal';
 
 type View = 'projects' | 'tasks' | 'task-detail';
 
@@ -18,6 +18,7 @@ function ProjectManagementApp() {
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | undefined>();
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   const [selectedTask, setSelectedTask] = useState<Task | undefined>();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>();
   const [currentView, setCurrentView] = useState<View>('projects');
   
   // Modal states
@@ -45,6 +46,7 @@ function ProjectManagementApp() {
 
   const handleTaskSelect = (task: Task) => {
     setSelectedTask(task);
+    setSelectedTaskId(task.id);
     setShowTaskDetail(true);
   };
 
@@ -60,6 +62,12 @@ function ProjectManagementApp() {
     setShowEditTask(false);
     setShowTaskDetail(false);
     setSelectedTask(undefined);
+    setSelectedTaskId(undefined);
+  };
+
+  const handleTaskUpdated = () => {
+    // The EditTaskModal will trigger Apollo cache updates via awaitRefetchQueries
+    // This ensures fresh data is available when the detail modal stays open
   };
 
   return (
@@ -151,67 +159,25 @@ function ProjectManagementApp() {
       )}
 
       {selectedTask && (
-        <>
-          <EditTaskModal
-            isOpen={showEditTask}
-            onClose={closeAllModals}
-            task={selectedTask}
-            projectId={selectedProject?.id}
-          />
-          <Modal
-            isOpen={showTaskDetail}
-            onClose={closeAllModals}
-            title={`Task: ${selectedTask.title}`}
-            size="lg"
-          >
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-                <p className="text-gray-700 whitespace-pre-wrap">
-                  {selectedTask.description || 'No description provided'}
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-gray-700">Status:</span>
-                  <span className="ml-2">{selectedTask.status.replace('_', ' ')}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Assignee:</span>
-                  <span className="ml-2">{selectedTask.assigneeEmail || 'Unassigned'}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Due Date:</span>
-                  <span className="ml-2">
-                    {selectedTask.dueDate 
-                      ? new Date(selectedTask.dueDate).toLocaleString()
-                      : 'No due date'
-                    }
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Created:</span>
-                  <span className="ml-2">{new Date(selectedTask.createdAt).toLocaleDateString()}</span>
-                </div>
-              </div>
+        <EditTaskModal
+          isOpen={showEditTask}
+          onClose={closeAllModals}
+          task={selectedTask}
+          projectId={selectedProject?.id}
+          onTaskUpdated={handleTaskUpdated}
+        />
+      )}
 
-              <TaskCommentsPanel task={selectedTask} />
-
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    setShowTaskDetail(false);
-                    setShowEditTask(true);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Edit Task
-                </button>
-              </div>
-            </div>
-          </Modal>
-        </>
+      {selectedTaskId && (
+        <TaskDetailModal
+          isOpen={showTaskDetail}
+          onClose={closeAllModals}
+          taskId={selectedTaskId}
+          onEditTask={() => {
+            setShowTaskDetail(false);
+            setShowEditTask(true);
+          }}
+        />
       )}
     </div>
   );

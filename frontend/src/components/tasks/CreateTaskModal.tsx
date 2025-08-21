@@ -23,7 +23,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [createTask] = useMutation(CREATE_TASK, {
     refetchQueries: [
       { query: TASKS_BY_PROJECT, variables: { projectId: project.id } }
-    ]
+    ],
+    awaitRefetchQueries: true,
+    errorPolicy: 'all'
   });
 
   const formFields = [

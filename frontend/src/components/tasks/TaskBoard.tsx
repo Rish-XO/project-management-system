@@ -35,11 +35,13 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
   const [updateTaskStatus] = useMutation(UPDATE_TASK_STATUS, {
     refetchQueries: [
       { query: TASKS_BY_PROJECT, variables: { projectId: project.id } }
-    ]
+    ],
+    awaitRefetchQueries: true, // Wait for refetch to complete
+    errorPolicy: 'all'
   });
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
+  const [isDragInProgress, setIsDragInProgress] = useState(false);
 
   // Configure sensors for desktop drag
   const sensors = useSensors(
@@ -50,17 +52,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
     })
   );
 
-  const serverTasks: Task[] = data?.tasksByProject || [];
-  
-  // Use optimistic tasks if available, otherwise use server data
-  const tasks = optimisticTasks.length > 0 ? optimisticTasks : serverTasks;
-  
-  // Update optimistic tasks when server data changes (MUST be before early returns)
-  React.useEffect(() => {
-    if (serverTasks.length > 0 && optimisticTasks.length === 0) {
-      setOptimisticTasks(serverTasks);
-    }
-  }, [serverTasks, optimisticTasks.length]);
+  const tasks: Task[] = data?.tasksByProject || [];
 
   if (loading) return <LoadingSpinner text="Loading tasks..." />;
   if (error) return <ErrorMessage message="Failed to load tasks" onRetry={() => refetch()} />;
@@ -72,13 +64,17 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
   const handleDragStart = (event: DragStartEvent) => {
     const draggedTask = tasks.find(task => task.id === event.active.id);
     setActiveTask(draggedTask || null);
+    setIsDragInProgress(true);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
+    // Clear drag states immediately for smooth animation
+    setActiveTask(null);
+    setIsDragInProgress(false);
+    
     if (!over || !active) {
-      setActiveTask(null);
       return;
     }
 
@@ -95,30 +91,17 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
     const newStatus = statusMapping[dropZone as keyof typeof statusMapping];
     
     if (!newStatus) {
-      setActiveTask(null);
       return;
     }
 
     const currentTask = tasks.find(task => task.id === taskId);
     if (!currentTask || currentTask.status === newStatus) {
-      setActiveTask(null);
       return;
     }
 
     console.log(`Moving task ${taskId} from ${currentTask.status} to ${newStatus}`);
 
-    // Optimistic update - immediately update UI
-    const updatedTasks = tasks.map(task => 
-      task.id === taskId 
-        ? { ...task, status: newStatus as 'TODO' | 'IN_PROGRESS' | 'DONE' }
-        : task
-    );
-    setOptimisticTasks(updatedTasks);
-
-    // Clear active task immediately for smooth animation
-    setActiveTask(null);
-
-    // Sync with backend
+    // Use Apollo Client's built-in cache management - no manual optimistic updates
     try {
       await updateTaskStatus({
         variables: {
@@ -126,17 +109,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
           status: newStatus
         }
       });
-      
-      // Sync optimistic state with server response after successful update
-      setTimeout(() => {
-        setOptimisticTasks([]);
-      }, 100);
-      
     } catch (error) {
       console.error('Failed to update task status:', error);
-      
-      // Revert optimistic update on error
-      setOptimisticTasks(serverTasks);
+      // Apollo Client will automatically handle error states
     }
   };
 

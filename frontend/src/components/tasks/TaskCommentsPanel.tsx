@@ -14,10 +14,24 @@ const TaskCommentsPanel: React.FC<TaskCommentsPanelProps> = ({ task }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Early return with loading state if task is not properly loaded
+  if (!task || !task.id || !task.project || !task.project.id) {
+    return (
+      <div className="bg-gray-50 rounded-lg p-4">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 mt-2">Loading task details...</p>
+        </div>
+      </div>
+    );
+  }
+
   const [addTaskComment] = useMutation(ADD_TASK_COMMENT, {
-    refetchQueries: [
+    refetchQueries: task.project?.id ? [
       { query: TASKS_BY_PROJECT, variables: { projectId: task.project.id } }
-    ]
+    ] : [],
+    awaitRefetchQueries: true,
+    errorPolicy: 'all'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
