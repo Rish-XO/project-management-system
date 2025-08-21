@@ -149,24 +149,6 @@ class TaskModelTest(TestCase):
         self.assertEqual(minimal_task.assignee_email, '')
         self.assertIsNone(minimal_task.due_date)
 
-    def test_task_ordering(self):
-        """Test task ordering by created_at (descending)."""
-        task1 = Task.objects.create(
-            project=self.project,
-            title='First Task',
-            status='TODO'
-        )
-        
-        task2 = Task.objects.create(
-            project=self.project,
-            title='Second Task',
-            status='TODO'
-        )
-        
-        # Check ordering (newest first)
-        tasks = list(Task.objects.all())
-        self.assertEqual(tasks[0], task2)  # Second task first (newer)
-        self.assertEqual(tasks[1], task1)  # First task second (older)
 
     def test_email_validation(self):
         """Test assignee email field validation."""

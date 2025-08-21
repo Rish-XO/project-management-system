@@ -3,9 +3,9 @@ from django.utils.text import slugify
 
 
 class Organization(models.Model):
-    name = models.CharField(max_length=100)
-    slug = models.SlugField(unique=True)
-    contact_email = models.EmailField()
+    name = models.CharField(max_length=100, null=False, blank=False)
+    slug = models.SlugField(unique=True, null=False, blank=False)
+    contact_email = models.EmailField(null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

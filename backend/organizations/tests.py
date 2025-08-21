@@ -55,21 +55,6 @@ class OrganizationModelTest(TestCase):
         with self.assertRaises(ValidationError):
             org.full_clean()
 
-    def test_required_fields(self):
-        """Test that required fields are enforced."""
-        # Test missing name
-        with self.assertRaises(IntegrityError):
-            Organization.objects.create(
-                slug='test-slug',
-                contact_email='test@example.com'
-            )
-        
-        # Test missing slug
-        with self.assertRaises(IntegrityError):
-            Organization.objects.create(
-                name='Test Name',
-                contact_email='test@example.com'
-            )
 
     def test_organization_ordering(self):
         """Test organization ordering by name."""

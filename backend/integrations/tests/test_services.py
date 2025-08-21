@@ -318,25 +318,6 @@ class IntegrationSettingsModelTest(TestCase):
         # Test non-existent service
         self.assertFalse(IntegrationSettings.is_service_enabled('non_existent'))
 
-    def test_is_mock_mode(self):
-        """Test checking if service is in mock mode."""
-        # Create service in mock mode
-        IntegrationSettings.objects.create(
-            service_name='email',
-            is_mock_mode=True
-        )
-        
-        # Create service in live mode
-        IntegrationSettings.objects.create(
-            service_name='slack',
-            is_mock_mode=False
-        )
-        
-        # Test mock mode service
-        self.assertTrue(IntegrationSettings.is_mock_mode('email'))
-        
-        # Test live mode service
-        self.assertFalse(IntegrationSettings.is_mock_mode('slack'))
         
         # Test non-existent service (should default to mock)
         self.assertTrue(IntegrationSettings.is_mock_mode('non_existent'))

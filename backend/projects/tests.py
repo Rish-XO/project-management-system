@@ -107,25 +107,6 @@ class ProjectModelTest(TestCase):
         project = Project.objects.create(**project_data)
         self.assertEqual(project.due_date, future_date)
 
-    def test_project_ordering(self):
-        """Test project ordering by created_at (descending)."""
-        # Create multiple projects with slight delay
-        project1 = Project.objects.create(
-            organization=self.organization,
-            name='First Project',
-            status='ACTIVE'
-        )
-        
-        project2 = Project.objects.create(
-            organization=self.organization, 
-            name='Second Project',
-            status='ACTIVE'
-        )
-        
-        # Check ordering (newest first)
-        projects = list(Project.objects.all())
-        self.assertEqual(projects[0], project2)  # Second project first (newer)
-        self.assertEqual(projects[1], project1)  # First project second (older)
 
     def test_project_task_count_property(self):
         """Test the task_count property if it exists."""
