@@ -1,6 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  useDraggable,
+  useDroppable,
+} from '@dnd-kit/core';
 import { TASKS_BY_PROJECT } from '../../graphql/queries';
 import { UPDATE_TASK_STATUS } from '../../graphql/mutations';
 import { Task, Project } from '../../types';
@@ -27,104 +38,205 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
     ]
   });
 
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
+
+  // Configure sensors for desktop drag
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // Require 5px movement before dragging starts
+      },
+    })
+  );
+
   if (loading) return <LoadingSpinner text="Loading tasks..." />;
   if (error) return <ErrorMessage message="Failed to load tasks" onRetry={() => refetch()} />;
 
-  const tasks: Task[] = data?.tasksByProject || [];
+  const serverTasks: Task[] = data?.tasksByProject || [];
+  
+  // Use optimistic tasks if available, otherwise use server data
+  const tasks = optimisticTasks.length > 0 ? optimisticTasks : serverTasks;
+  
+  // Update optimistic tasks when server data changes
+  React.useEffect(() => {
+    if (serverTasks.length > 0 && optimisticTasks.length === 0) {
+      setOptimisticTasks(serverTasks);
+    }
+  }, [serverTasks, optimisticTasks.length]);
 
   const todoTasks = tasks.filter(task => task.status === 'TODO');
   const inProgressTasks = tasks.filter(task => task.status === 'IN_PROGRESS');
   const doneTasks = tasks.filter(task => task.status === 'DONE');
 
-  const handleDragEnd = async (result: any) => {
-    const { destination, source, draggableId } = result;
+  const handleDragStart = (event: DragStartEvent) => {
+    const draggedTask = tasks.find(task => task.id === event.active.id);
+    setActiveTask(draggedTask || null);
+  };
 
-    // If dropped outside or in the same position, do nothing
-    if (!destination || 
-        (destination.droppableId === source.droppableId && 
-         destination.index === source.index)) {
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || !active) {
+      setActiveTask(null);
       return;
     }
 
-    // Map droppable IDs to task statuses
-    const statusMap: { [key: string]: string } = {
-      'TODO': 'TODO',
-      'IN_PROGRESS': 'IN_PROGRESS', 
-      'DONE': 'DONE'
-    };
+    const taskId = active.id as string;
+    const dropZone = over.id as string;
 
-    const newStatus = statusMap[destination.droppableId];
-    if (!newStatus) return;
+    // Map drop zone IDs to task statuses
+    const statusMapping = {
+      'column-TODO': 'TODO',
+      'column-IN_PROGRESS': 'IN_PROGRESS',
+      'column-DONE': 'DONE'
+    } as const;
 
+    const newStatus = statusMapping[dropZone as keyof typeof statusMapping];
+    
+    if (!newStatus) {
+      setActiveTask(null);
+      return;
+    }
+
+    const currentTask = tasks.find(task => task.id === taskId);
+    if (!currentTask || currentTask.status === newStatus) {
+      setActiveTask(null);
+      return;
+    }
+
+    console.log(`Moving task ${taskId} from ${currentTask.status} to ${newStatus}`);
+
+    // Optimistic update - immediately update UI
+    const updatedTasks = tasks.map(task => 
+      task.id === taskId 
+        ? { ...task, status: newStatus as 'TODO' | 'IN_PROGRESS' | 'DONE' }
+        : task
+    );
+    setOptimisticTasks(updatedTasks);
+
+    // Clear active task immediately for smooth animation
+    setActiveTask(null);
+
+    // Sync with backend
     try {
       await updateTaskStatus({
         variables: {
-          id: draggableId,
+          id: taskId,
           status: newStatus
         }
       });
+      
+      // Sync optimistic state with server response after successful update
+      setTimeout(() => {
+        setOptimisticTasks([]);
+      }, 100);
+      
     } catch (error) {
       console.error('Failed to update task status:', error);
-      // You could add a toast notification here
+      
+      // Revert optimistic update on error
+      setOptimisticTasks(serverTasks);
     }
   };
 
-  const Column = ({ title, tasks, status, bgColor }: {
+  // Draggable Task Component
+  const DraggableTask = ({ task }: { task: Task }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+      id: task.id,
+    });
+
+    const style = transform ? {
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    } : undefined;
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`${isDragging ? 'opacity-50' : ''} cursor-grab active:cursor-grabbing`}
+        {...listeners}
+        {...attributes}
+      >
+        <div className="relative">
+          <TaskCard
+            task={task}
+            onClick={() => {
+              onTaskClick ? onTaskClick(task) : onEditTask(task);
+            }}
+            onEdit={() => {
+              onEditTask(task);
+            }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Droppable Column Component
+  const TaskColumn = ({ 
+    title, 
+    tasks, 
+    status, 
+    bgColor 
+  }: {
     title: string;
     tasks: Task[];
     status: string;
     bgColor: string;
-  }) => (
-    <div className="flex-1 bg-gray-50 rounded-lg p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
-        <span className={`${bgColor} text-white text-sm px-2 py-1 rounded-full`}>
-          {tasks.length}
-        </span>
-      </div>
-      <Droppable droppableId={status}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={`space-y-3 min-h-[200px] rounded-lg transition-colors ${
-              snapshot.isDraggingOver ? 'bg-blue-50 border-2 border-blue-200 border-dashed' : ''
-            }`}
-          >
-            {tasks.map((task, index) => (
-              <Draggable key={task.id} draggableId={task.id} index={index}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className={`${snapshot.isDragging ? 'transform rotate-2 shadow-lg' : ''}`}
-                  >
-                    <TaskCard
-                      task={task}
-                      onClick={() => onTaskClick ? onTaskClick(task) : onEditTask(task)}
-                      onEdit={() => onEditTask(task)}
-                    />
-                  </div>
-                )}
-              </Draggable>
-            ))}
-            {provided.placeholder}
-            {tasks.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <p className="text-sm">No {title.toLowerCase()} tasks</p>
-                <p className="text-xs mt-1">Drag tasks here</p>
+  }) => {
+    const { isOver, setNodeRef } = useDroppable({
+      id: `column-${status}`,
+    });
+
+    return (
+      <div className="flex-1 bg-gray-50 rounded-lg p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold text-gray-900">{title}</h3>
+          <span className={`${bgColor} text-white text-sm px-2 py-1 rounded-full`}>
+            {tasks.length}
+          </span>
+        </div>
+        
+        <div
+          ref={setNodeRef}
+          className={`
+            space-y-3 min-h-[400px] rounded-lg p-3 border-2 border-dashed transition-all duration-200
+            ${isOver 
+              ? 'border-blue-400 bg-blue-50' 
+              : 'border-gray-200 hover:border-gray-300'
+            }
+          `}
+        >
+          {tasks.map(task => (
+            <DraggableTask key={task.id} task={task} />
+          ))}
+          
+          {tasks.length === 0 && (
+            <div className="text-center py-16 text-gray-500">
+              <div className="mb-2">
+                <svg className="w-8 h-8 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
               </div>
-            )}
-          </div>
-        )}
-      </Droppable>
-    </div>
-  );
+              <p className="text-sm font-medium">No {title.toLowerCase()} tasks</p>
+              <p className="text-xs mt-1">Drag tasks here</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
@@ -138,46 +250,61 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
           </button>
         </div>
 
-        <div className="flex gap-6 overflow-x-auto pb-4">
-        <Column
-          title="To Do"
-          tasks={todoTasks}
-          status="TODO"
-          bgColor="bg-gray-500"
-        />
-        <Column
-          title="In Progress"
-          tasks={inProgressTasks}
-          status="IN_PROGRESS"
-          bgColor="bg-blue-500"
-        />
-        <Column
-          title="Done"
-          tasks={doneTasks}
-          status="DONE"
-          bgColor="bg-green-500"
-        />
+        {/* Columns */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <TaskColumn
+            title="To Do"
+            tasks={todoTasks}
+            status="TODO"
+            bgColor="bg-gray-500"
+          />
+          <TaskColumn
+            title="In Progress"
+            tasks={inProgressTasks}
+            status="IN_PROGRESS"
+            bgColor="bg-blue-500"
+          />
+          <TaskColumn
+            title="Done"
+            tasks={doneTasks}
+            status="DONE"
+            bgColor="bg-green-500"
+          />
+        </div>
+
+        {/* Empty State */}
+        {tasks.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Tasks Yet</h3>
+            <p className="text-gray-600 mb-4">Create your first task to get started</p>
+            <button
+              onClick={onCreateTask}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              Add Task
+            </button>
+          </div>
+        )}
       </div>
 
-      {tasks.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activeTask ? (
+          <div className="transform rotate-2 shadow-2xl">
+            <TaskCard
+              task={activeTask}
+              onClick={() => {}}
+              onEdit={() => {}}
+            />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Tasks Yet</h3>
-          <p className="text-gray-600 mb-4">Create your first task to get started</p>
-          <button
-            onClick={onCreateTask}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-          >
-            Add Task
-          </button>
-        </div>
-      )}
-      </div>
-    </DragDropContext>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 };
 
