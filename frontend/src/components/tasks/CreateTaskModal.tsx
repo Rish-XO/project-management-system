@@ -5,6 +5,7 @@ import { CREATE_TASK } from '../../graphql/mutations';
 import { Project } from '../../types';
 import Modal from '../common/Modal';
 import Form from '../common/Form';
+import { useToast } from '../common/ToastContainer';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   onClose,
   project
 }) => {
+  const { showIntegrationToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -92,6 +94,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       const result = await createTask({ variables });
 
       if (result.data?.createTask?.success) {
+        // Show integration notifications
+        if (values.assigneeEmail) {
+          showIntegrationToast('email', `Task assignment sent`, values.assigneeEmail);
+          showIntegrationToast('slack', `Task creation posted`, `#${project.organization.slug}`);
+        }
         onClose();
       } else {
         setErrors(result.data?.createTask?.errors || ['Failed to create task']);

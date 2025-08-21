@@ -18,6 +18,7 @@ import { Task, Project } from '../../types';
 import TaskCard from './TaskCard';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
+import { useToast } from '../common/ToastContainer';
 
 interface TaskBoardProps {
   project: Project;
@@ -27,6 +28,7 @@ interface TaskBoardProps {
 }
 
 const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask, onTaskClick }) => {
+  const { showIntegrationToast } = useToast();
   const { data, loading, error, refetch } = useQuery(TASKS_BY_PROJECT, {
     variables: { projectId: project.id },
     skip: !project.id
@@ -126,6 +128,18 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
           }
         }
       });
+      
+      // Show integration notifications
+      if (currentTask.assignee_email) {
+        showIntegrationToast('email', `Status update sent`, currentTask.assignee_email);
+      }
+      
+      if (newStatus === 'DONE') {
+        showIntegrationToast('slack', `Task completion posted`, `#${project.organization.slug}`);
+      } else {
+        showIntegrationToast('slack', `Status change posted`, `#${project.organization.slug}`);
+      }
+      
     } catch (error) {
       console.error('Failed to update task status:', error);
       // Apollo Client will automatically revert optimistic updates on error

@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'organizations',
     'projects',
     'tasks',
+    'integrations',
 ]
 
 MIDDLEWARE = [

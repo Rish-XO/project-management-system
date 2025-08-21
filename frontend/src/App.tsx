@@ -11,6 +11,7 @@ import EditProjectModal from './components/projects/EditProjectModal';
 import CreateTaskModal from './components/tasks/CreateTaskModal';
 import EditTaskModal from './components/tasks/EditTaskModal';
 import TaskDetailModal from './components/tasks/TaskDetailModal';
+import { ToastProvider, useToast } from './components/common/ToastContainer';
 
 type View = 'projects' | 'tasks' | 'task-detail';
 
@@ -186,7 +187,9 @@ function ProjectManagementApp() {
 function App() {
   return (
     <ApolloProvider client={apolloClient}>
-      <ProjectManagementApp />
+      <ToastProvider>
+        <ProjectManagementApp />
+      </ToastProvider>
     </ApolloProvider>
   );
 }
