@@ -3,15 +3,20 @@ Django settings for project_management project.
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-6--+#45z7m-2#eyp99zbr5q@)8(bd*0e6wpck-wajm!e&kx#o)'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-6--+#45z7m-2#eyp99zbr5q@)8(bd*0e6wpck-wajm!e&kx#o)')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = []
 
@@ -67,15 +72,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project_management.wsgi.application'
 
-# Database - PostgreSQL
+# Database - PostgreSQL with environment variables
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'project_management_db',
-        'USER': 'postgres',
-        'PASSWORD': 'rishal1999',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('DB_NAME', 'project_management_db'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 

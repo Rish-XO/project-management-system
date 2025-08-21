@@ -83,9 +83,15 @@ project-management-system/
    pip install -r requirements.txt
    ```
 
-4. **Configure PostgreSQL**
-   - Create database: `project_management_db`
-   - Update `backend/project_management/settings.py` with your database credentials
+4. **Setup Database and Environment**
+   ```bash
+   # Create PostgreSQL database
+   createdb project_management_db
+   
+   # Copy environment template and configure
+   cp .env.example .env
+   # Edit .env file with your database credentials
+   ```
 
 5. **Run migrations**
    ```bash
