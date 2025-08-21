@@ -153,15 +153,29 @@ project-management-system/
 ## 🔧 Development
 
 ### Running Tests
-```bash
-# Backend
-cd backend
-python manage.py test
 
-# Frontend
+**Comprehensive test coverage with 40+ tests across backend and frontend:**
+
+```bash
+# Backend Tests (25+ tests)
+cd backend
+python manage.py test                    # All tests
+python manage.py test organizations      # Model tests
+python manage.py test tests.test_graphql_api  # GraphQL API tests
+python manage.py test integrations.tests      # Integration service tests
+
+# Frontend Tests (15+ tests)  
 cd frontend
-npm test
+npm test                                 # All tests
+npm test -- --coverage --watchAll=false # With coverage report
+npm test TaskCard.test.tsx              # Component tests
 ```
+
+**Test Categories:**
+- **Model Tests**: Organizations, Projects, Tasks, Comments
+- **GraphQL API Tests**: Queries, mutations, organization isolation
+- **Integration Tests**: Mock email/Slack services, orchestration
+- **Component Tests**: TaskCard, Toast system, user interactions
 
 ### Building for Production
 ```bash
