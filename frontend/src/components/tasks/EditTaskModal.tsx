@@ -10,26 +10,31 @@ interface EditTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   task: Task;
+  projectId?: string; // Add optional projectId prop for safety
 }
 
 const EditTaskModal: React.FC<EditTaskModalProps> = ({
   isOpen,
   onClose,
-  task
+  task,
+  projectId
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
+  // Use projectId prop or fallback to task.project?.id with null safety
+  const safeProjectId = projectId || task.project?.id;
+
   const [updateTask] = useMutation(UPDATE_TASK, {
-    refetchQueries: [
-      { query: TASKS_BY_PROJECT, variables: { projectId: task.project.id } }
-    ]
+    refetchQueries: safeProjectId ? [
+      { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } }
+    ] : []
   });
 
   const [updateTaskStatus] = useMutation(UPDATE_TASK_STATUS, {
-    refetchQueries: [
-      { query: TASKS_BY_PROJECT, variables: { projectId: task.project.id } }
-    ]
+    refetchQueries: safeProjectId ? [
+      { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } }
+    ] : []
   });
 
   const formFields = [

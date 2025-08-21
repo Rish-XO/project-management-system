@@ -1,6 +1,8 @@
 import React from 'react';
-import { useQuery } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { TASKS_BY_PROJECT } from '../../graphql/queries';
+import { UPDATE_TASK_STATUS } from '../../graphql/mutations';
 import { Task, Project } from '../../types';
 import TaskCard from './TaskCard';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -19,6 +21,12 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
     skip: !project.id
   });
 
+  const [updateTaskStatus] = useMutation(UPDATE_TASK_STATUS, {
+    refetchQueries: [
+      { query: TASKS_BY_PROJECT, variables: { projectId: project.id } }
+    ]
+  });
+
   if (loading) return <LoadingSpinner text="Loading tasks..." />;
   if (error) return <ErrorMessage message="Failed to load tasks" onRetry={() => refetch()} />;
 
@@ -27,6 +35,39 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
   const todoTasks = tasks.filter(task => task.status === 'TODO');
   const inProgressTasks = tasks.filter(task => task.status === 'IN_PROGRESS');
   const doneTasks = tasks.filter(task => task.status === 'DONE');
+
+  const handleDragEnd = async (result: any) => {
+    const { destination, source, draggableId } = result;
+
+    // If dropped outside or in the same position, do nothing
+    if (!destination || 
+        (destination.droppableId === source.droppableId && 
+         destination.index === source.index)) {
+      return;
+    }
+
+    // Map droppable IDs to task statuses
+    const statusMap: { [key: string]: string } = {
+      'TODO': 'TODO',
+      'IN_PROGRESS': 'IN_PROGRESS', 
+      'DONE': 'DONE'
+    };
+
+    const newStatus = statusMap[destination.droppableId];
+    if (!newStatus) return;
+
+    try {
+      await updateTaskStatus({
+        variables: {
+          id: draggableId,
+          status: newStatus
+        }
+      });
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+      // You could add a toast notification here
+    }
+  };
 
   const Column = ({ title, tasks, status, bgColor }: {
     title: string;
@@ -41,40 +82,63 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
           {tasks.length}
         </span>
       </div>
-      <div className="space-y-3">
-        {tasks.map(task => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            onClick={() => onTaskClick ? onTaskClick(task) : onEditTask(task)}
-            onEdit={() => onEditTask(task)}
-          />
-        ))}
-        {tasks.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <p className="text-sm">No {title.toLowerCase()} tasks</p>
+      <Droppable droppableId={status}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={`space-y-3 min-h-[200px] rounded-lg transition-colors ${
+              snapshot.isDraggingOver ? 'bg-blue-50 border-2 border-blue-200 border-dashed' : ''
+            }`}
+          >
+            {tasks.map((task, index) => (
+              <Draggable key={task.id} draggableId={task.id} index={index}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                    className={`${snapshot.isDragging ? 'transform rotate-2 shadow-lg' : ''}`}
+                  >
+                    <TaskCard
+                      task={task}
+                      onClick={() => onTaskClick ? onTaskClick(task) : onEditTask(task)}
+                      onEdit={() => onEditTask(task)}
+                    />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+            {tasks.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <p className="text-sm">No {title.toLowerCase()} tasks</p>
+                <p className="text-xs mt-1">Drag tasks here</p>
+              </div>
+            )}
           </div>
         )}
-      </div>
+      </Droppable>
     </div>
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
-          <p className="text-gray-600">{project.description}</p>
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
+            <p className="text-gray-600">{project.description}</p>
+          </div>
+          <button
+            onClick={onCreateTask}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+          >
+            Add Task
+          </button>
         </div>
-        <button
-          onClick={onCreateTask}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
-        >
-          Add Task
-        </button>
-      </div>
 
-      <div className="flex gap-6 overflow-x-auto pb-4">
+        <div className="flex gap-6 overflow-x-auto pb-4">
         <Column
           title="To Do"
           tasks={todoTasks}
@@ -112,7 +176,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
           </button>
         </div>
       )}
-    </div>
+      </div>
+    </DragDropContext>
   );
 };
 

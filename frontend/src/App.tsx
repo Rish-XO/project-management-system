@@ -156,6 +156,7 @@ function ProjectManagementApp() {
             isOpen={showEditTask}
             onClose={closeAllModals}
             task={selectedTask}
+            projectId={selectedProject?.id}
           />
           <Modal
             isOpen={showTaskDetail}
