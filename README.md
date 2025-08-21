@@ -14,7 +14,7 @@ A full-stack project management application built with Django GraphQL backend an
 
 ### 🎨 User Experience
 - **Smooth Animations**: Apollo Client optimistic updates for instant feedback
-- **Responsive Design**: TailwindCSS for modern, mobile-friendly interface
+- **Modern Interface**: TailwindCSS for clean, professional design
 - **Form Validation**: Real-time validation with user-friendly error messages
 - **Loading States**: Smooth loading indicators throughout the application
 - **Error Handling**: Comprehensive error handling with retry capabilities
@@ -212,11 +212,11 @@ The application implements organization-based multi-tenancy:
 - Frontend enforces organization selection
 - Database indexes optimize tenant-specific queries
 
-## 📱 Responsive Design
+## 🎨 Interface Design
 
-Built with mobile-first approach using TailwindCSS:
-- Adaptive layouts for all screen sizes
-- Touch-friendly drag-and-drop (desktop optimized)
+Built using TailwindCSS:
+- Clean, professional layouts
+- Intuitive drag-and-drop task management
 - Accessible form controls and navigation
 - Consistent design system throughout
 

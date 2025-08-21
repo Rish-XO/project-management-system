@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
-import { TASKS_BY_PROJECT } from '../../graphql/queries';
+import { TASKS_BY_PROJECT, PROJECTS_BY_ORGANIZATION } from '../../graphql/queries';
 import { UPDATE_TASK, UPDATE_TASK_STATUS } from '../../graphql/mutations';
 import { Task } from '../../types';
 import Modal from '../common/Modal';
@@ -29,14 +29,16 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
 
   const [updateTask] = useMutation(UPDATE_TASK, {
     refetchQueries: safeProjectId ? [
-      { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } }
+      { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } },
+      { query: PROJECTS_BY_ORGANIZATION, variables: { organizationSlug: task.project?.organization?.slug } }
     ] : [],
     errorPolicy: 'all'
   });
 
   const [updateTaskStatus] = useMutation(UPDATE_TASK_STATUS, {
     refetchQueries: safeProjectId ? [
-      { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } }
+      { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } },
+      { query: PROJECTS_BY_ORGANIZATION, variables: { organizationSlug: task.project?.organization?.slug } }
     ] : [],
     errorPolicy: 'all'
   });

@@ -12,7 +12,7 @@ import {
   useDraggable,
   useDroppable,
 } from '@dnd-kit/core';
-import { TASKS_BY_PROJECT } from '../../graphql/queries';
+import { TASKS_BY_PROJECT, PROJECTS_BY_ORGANIZATION } from '../../graphql/queries';
 import { UPDATE_TASK_STATUS } from '../../graphql/mutations';
 import { Task, Project } from '../../types';
 import TaskCard from './TaskCard';
@@ -36,7 +36,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
 
   const [updateTaskStatus] = useMutation(UPDATE_TASK_STATUS, {
     refetchQueries: [
-      { query: TASKS_BY_PROJECT, variables: { projectId: project.id } }
+      { query: TASKS_BY_PROJECT, variables: { projectId: project.id } },
+      { query: PROJECTS_BY_ORGANIZATION, variables: { organizationSlug: project.organization?.slug } }
     ],
     errorPolicy: 'all'
   });
