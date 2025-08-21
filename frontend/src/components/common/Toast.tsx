@@ -69,13 +69,13 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
   return (
     <div
       className={`
-        max-w-sm w-full border rounded-lg shadow-lg p-4 mb-3 transition-all duration-300 transform
+        w-full sm:max-w-sm border rounded-lg shadow-lg p-3 sm:p-4 mb-3 transition-all duration-300 transform
         ${getTypeStyles()}
         ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'}
       `}
     >
       <div className="flex items-start">
-        <div className="flex-shrink-0 text-lg mr-3">
+        <div className="flex-shrink-0 text-base sm:text-lg mr-2 sm:mr-3">
           {getIcon()}
         </div>
         <div className="flex-1 min-w-0">
@@ -83,14 +83,14 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
             {toast.title}
           </div>
           {toast.message && (
-            <div className="text-sm mt-1 opacity-90">
+            <div className="text-xs sm:text-sm mt-1 opacity-90">
               {toast.message}
             </div>
           )}
         </div>
         <button
           onClick={handleClose}
-          className="flex-shrink-0 ml-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+          className="flex-shrink-0 ml-2 sm:ml-3 text-gray-400 hover:text-gray-600 focus:outline-none p-1 touch-manipulation"
         >
           <span className="sr-only">Close</span>
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
