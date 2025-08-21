@@ -49,9 +49,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3, // Require 3px movement before dragging starts (more sensitive)
-        tolerance: 5, // Allow 5px tolerance for pointer movements
-        delay: 0, // No delay for activation
+        distance: 5, // Require 5px movement before dragging starts
       },
     })
   );
@@ -324,17 +322,27 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
     );
   };
 
-  // To Do Column Component (copied from working columns)
-  const ToDoColumn = ({ tasks }: { tasks: Task[] }) => {
+  // Droppable Column Component
+  const TaskColumn = ({ 
+    title, 
+    tasks, 
+    status, 
+    bgColor 
+  }: {
+    title: string;
+    tasks: Task[];
+    status: string;
+    bgColor: string;
+  }) => {
     const { isOver, setNodeRef } = useDroppable({
-      id: 'column-TODO',
+      id: `column-${status}`,
     });
 
     return (
       <div className="flex-1 bg-gray-50 rounded-lg p-3 sm:p-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-semibold text-gray-900 text-sm sm:text-base">To Do</h3>
-          <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full">
+          <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{title}</h3>
+          <span className={`${bgColor} text-white text-xs px-2 py-1 rounded-full`}>
             {tasks.length}
           </span>
         </div>
@@ -342,7 +350,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
         <div
           ref={setNodeRef}
           className={`
-            space-y-3 min-h-[300px] sm:min-h-[400px] rounded-lg p-4 sm:p-6 border-2 border-dashed transition-all duration-200
+            space-y-3 min-h-[300px] sm:min-h-[400px] rounded-lg p-2 sm:p-3 border-2 border-dashed transition-all duration-200
             ${isOver 
               ? 'border-blue-400 bg-blue-50' 
               : 'border-gray-200 hover:border-gray-300'
@@ -363,103 +371,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
-              <p className="text-xs sm:text-sm font-medium">No to do tasks</p>
-              <p className="text-xs mt-1 hidden md:block">Drag tasks here</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // In Progress Column Component (working reference)
-  const InProgressColumn = ({ tasks }: { tasks: Task[] }) => {
-    const { isOver, setNodeRef } = useDroppable({
-      id: 'column-IN_PROGRESS',
-    });
-
-    return (
-      <div className="flex-1 bg-gray-50 rounded-lg p-3 sm:p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-semibold text-gray-900 text-sm sm:text-base">In Progress</h3>
-          <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-            {tasks.length}
-          </span>
-        </div>
-        
-        <div
-          ref={setNodeRef}
-          className={`
-            space-y-3 min-h-[300px] sm:min-h-[400px] rounded-lg p-4 sm:p-6 border-2 border-dashed transition-all duration-200
-            ${isOver 
-              ? 'border-blue-400 bg-blue-50' 
-              : 'border-gray-200 hover:border-gray-300'
-            }
-          `}
-        >
-          {tasks.map(task => (
-            <div key={task.id}>
-              <DraggableTask task={task} />
-              <MobileTask task={task} />
-            </div>
-          ))}
-          
-          {tasks.length === 0 && (
-            <div className="text-center py-12 sm:py-16 text-gray-500">
-              <div className="mb-2">
-                <svg className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <p className="text-xs sm:text-sm font-medium">No in progress tasks</p>
-              <p className="text-xs mt-1 hidden md:block">Drag tasks here</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Done Column Component (working reference)
-  const DoneColumn = ({ tasks }: { tasks: Task[] }) => {
-    const { isOver, setNodeRef } = useDroppable({
-      id: 'column-DONE',
-    });
-
-    return (
-      <div className="flex-1 bg-gray-50 rounded-lg p-3 sm:p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Done</h3>
-          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-            {tasks.length}
-          </span>
-        </div>
-        
-        <div
-          ref={setNodeRef}
-          className={`
-            space-y-3 min-h-[300px] sm:min-h-[400px] rounded-lg p-4 sm:p-6 border-2 border-dashed transition-all duration-200
-            ${isOver 
-              ? 'border-blue-400 bg-blue-50' 
-              : 'border-gray-200 hover:border-gray-300'
-            }
-          `}
-        >
-          {tasks.map(task => (
-            <div key={task.id}>
-              <DraggableTask task={task} />
-              <MobileTask task={task} />
-            </div>
-          ))}
-          
-          {tasks.length === 0 && (
-            <div className="text-center py-12 sm:py-16 text-gray-500">
-              <div className="mb-2">
-                <svg className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <p className="text-xs sm:text-sm font-medium">No done tasks</p>
+              <p className="text-xs sm:text-sm font-medium">No {title.toLowerCase()} tasks</p>
               <p className="text-xs mt-1 hidden md:block">Drag tasks here</p>
             </div>
           )}
@@ -517,16 +429,52 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
 
         {/* Desktop Columns Grid */}
         <div className="hidden md:grid md:grid-cols-3 gap-6">
-          <ToDoColumn tasks={todoTasks} />
-          <InProgressColumn tasks={inProgressTasks} />
-          <DoneColumn tasks={doneTasks} />
+          <TaskColumn
+            title="To Do"
+            tasks={todoTasks}
+            status="TODO"
+            bgColor="bg-gray-500"
+          />
+          <TaskColumn
+            title="In Progress"
+            tasks={inProgressTasks}
+            status="IN_PROGRESS"
+            bgColor="bg-blue-500"
+          />
+          <TaskColumn
+            title="Done"
+            tasks={doneTasks}
+            status="DONE"
+            bgColor="bg-green-500"
+          />
         </div>
 
         {/* Mobile Single Column View */}
         <div className="md:hidden">
-          {selectedMobileColumn === 'TODO' && <ToDoColumn tasks={todoTasks} />}
-          {selectedMobileColumn === 'IN_PROGRESS' && <InProgressColumn tasks={inProgressTasks} />}
-          {selectedMobileColumn === 'DONE' && <DoneColumn tasks={doneTasks} />}
+          {selectedMobileColumn === 'TODO' && (
+            <TaskColumn
+              title="To Do"
+              tasks={todoTasks}
+              status="TODO"
+              bgColor="bg-gray-500"
+            />
+          )}
+          {selectedMobileColumn === 'IN_PROGRESS' && (
+            <TaskColumn
+              title="In Progress"
+              tasks={inProgressTasks}
+              status="IN_PROGRESS"
+              bgColor="bg-blue-500"
+            />
+          )}
+          {selectedMobileColumn === 'DONE' && (
+            <TaskColumn
+              title="Done"
+              tasks={doneTasks}
+              status="DONE"
+              bgColor="bg-green-500"
+            />
+          )}
         </div>
 
         {/* Empty State */}
