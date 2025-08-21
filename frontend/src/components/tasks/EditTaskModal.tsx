@@ -135,12 +135,17 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
         }
       } else {
         // Use full task update
+        // Convert datetime-local to timezone-aware ISO string
+        const dueDate = values.dueDate 
+          ? new Date(values.dueDate).toISOString() 
+          : null;
+
         const variables = {
           id: task.id,
           title: values.title,
           description: values.description || '',
           assigneeEmail: values.assigneeEmail || '',
-          dueDate: values.dueDate || null
+          dueDate: dueDate
         };
 
         const result = await updateTask({ variables });
