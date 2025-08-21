@@ -31,7 +31,6 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
     refetchQueries: safeProjectId ? [
       { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } }
     ] : [],
-    awaitRefetchQueries: true,
     errorPolicy: 'all'
   });
 
@@ -39,7 +38,6 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
     refetchQueries: safeProjectId ? [
       { query: TASKS_BY_PROJECT, variables: { projectId: safeProjectId } }
     ] : [],
-    awaitRefetchQueries: true,
     errorPolicy: 'all'
   });
 

@@ -30,7 +30,6 @@ const TaskCommentsPanel: React.FC<TaskCommentsPanelProps> = ({ task }) => {
     refetchQueries: task.project?.id ? [
       { query: TASKS_BY_PROJECT, variables: { projectId: task.project.id } }
     ] : [],
-    awaitRefetchQueries: true,
     errorPolicy: 'all'
   });
 

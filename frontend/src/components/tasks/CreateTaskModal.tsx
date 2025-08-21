@@ -24,7 +24,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     refetchQueries: [
       { query: TASKS_BY_PROJECT, variables: { projectId: project.id } }
     ],
-    awaitRefetchQueries: true,
     errorPolicy: 'all'
   });
 

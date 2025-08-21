@@ -36,7 +36,6 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
     refetchQueries: [
       { query: TASKS_BY_PROJECT, variables: { projectId: project.id } }
     ],
-    awaitRefetchQueries: true, // Wait for refetch to complete
     errorPolicy: 'all'
   });
 
@@ -101,17 +100,35 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ project, onEditTask, onCreateTask
 
     console.log(`Moving task ${taskId} from ${currentTask.status} to ${newStatus}`);
 
-    // Use Apollo Client's built-in cache management - no manual optimistic updates
+    // Use Apollo Client's optimistic response for smooth animations
     try {
       await updateTaskStatus({
         variables: {
           id: taskId,
           status: newStatus
+        },
+        optimisticResponse: {
+          updateTaskStatus: {
+            __typename: 'UpdateTaskStatus',
+            success: true,
+            errors: [],
+            task: {
+              ...currentTask,
+              status: newStatus
+            }
+          }
+        },
+        update: (cache, { data }) => {
+          // Only update cache if the mutation was successful
+          if (data?.updateTaskStatus?.success) {
+            // Apollo will automatically update the cache based on refetchQueries
+            // but the optimisticResponse provides immediate visual feedback
+          }
         }
       });
     } catch (error) {
       console.error('Failed to update task status:', error);
-      // Apollo Client will automatically handle error states
+      // Apollo Client will automatically revert optimistic updates on error
     }
   };
 
