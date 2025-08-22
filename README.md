@@ -131,17 +131,27 @@ project-management-system/
 
 ## 📊 GraphQL API
 
-### Key Queries
+The system provides a comprehensive GraphQL API for managing organizations, projects, tasks, and comments.
+
+**📋 Complete API Documentation**: [`docs/API.md`](docs/API.md)
+
+**🔧 Interactive API Explorer**: `http://127.0.0.1:8000/graphql/` (GraphiQL interface)
+
+### Quick API Overview
+
+#### Key Queries
 - `organizationList` - List all organizations
 - `projectsByOrganization(organizationSlug)` - Projects for organization
 - `tasksByProject(projectId)` - Tasks with comments for project
 - `taskDetail(id)` - Single task with full details
 
-### Key Mutations
+#### Key Mutations
 - `createOrganization`, `updateOrganization` - Organization management
 - `createProject`, `updateProject` - Project management  
 - `createTask`, `updateTask`, `updateTaskStatus` - Task management
 - `addTaskComment` - Comment system
+
+For detailed request/response examples, field descriptions, and error handling, see the [complete API documentation](docs/API.md).
 
 ## 🎯 Key Components
 
@@ -238,8 +248,9 @@ Built with mobile-first approach using TailwindCSS:
 
 ## 📄 Documentation
 
-- **CLAUDE.md**: Detailed development guide and project structure
-- **GraphQL Schema**: Available at `/graphql/` endpoint
+- **[API Documentation](docs/API.md)**: Complete GraphQL API reference with examples
+- **[Development Guide](CLAUDE.md)**: Detailed development guide and project structure  
+- **GraphQL Schema**: Interactive explorer at `/graphql/` endpoint
 - **Component Documentation**: See individual component files for props and usage
 
 ## 🤝 Contributing

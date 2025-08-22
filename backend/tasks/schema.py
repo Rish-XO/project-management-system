@@ -6,34 +6,48 @@ from projects.models import Project
 
 
 class TaskCommentType(DjangoObjectType):
+    """
+    Represents a comment on a task, enabling threaded discussions and collaboration.
+    Comments are ordered by timestamp in descending order (newest first).
+    """
     class Meta:
         model = TaskComment
         fields = ("id", "content", "author_email", "timestamp", "task")
+        description = "A comment on a task, enabling team collaboration and communication"
 
 
 class TaskType(DjangoObjectType):
-    is_overdue = graphene.Boolean()
-    comments = graphene.List(TaskCommentType)
+    """
+    Represents a task within a project. Tasks have three states: TODO, IN_PROGRESS, and DONE.
+    Tasks can be assigned to team members, have due dates, and support collaborative comments.
+    """
+    is_overdue = graphene.Boolean(description="Whether the task is overdue (past due date and not completed)")
+    comments = graphene.List(TaskCommentType, description="All comments on this task, ordered by newest first")
 
     class Meta:
         model = Task
         fields = ("id", "title", "description", "status", "assignee_email", "due_date", "created_at", "updated_at", "project")
+        description = "A task within a project that can be tracked through different status states"
 
     def resolve_is_overdue(self, info):
+        """Calculate if task is overdue based on due date and completion status"""
         return self.is_overdue
 
     def resolve_comments(self, info):
+        """Retrieve all comments for this task with optimized database query"""
         return self.comments.all()
 
 
 class Query(graphene.ObjectType):
     tasks_by_project = graphene.List(
         TaskType,
-        project_id=graphene.ID(required=True)
+        project_id=graphene.ID(required=True, description="ID of the project to retrieve tasks from"),
+        description="Retrieve all tasks for a specific project, including comments and task details"
     )
     task_detail = graphene.Field(
         TaskType,
-        id=graphene.ID(required=True)
+        id=graphene.ID(required=True, description="ID of the task to retrieve"),
+        description="Retrieve detailed information about a specific task, including all comments and project context"
     )
 
     def resolve_tasks_by_project(self, info, project_id):
@@ -51,16 +65,20 @@ class Query(graphene.ObjectType):
 
 
 class CreateTask(graphene.Mutation):
+    """
+    Creates a new task within a project. The task will be created with TODO status by default.
+    All fields except project_id and title are optional.
+    """
     class Arguments:
-        project_id = graphene.ID(required=True)
-        title = graphene.String(required=True)
-        description = graphene.String()
-        assignee_email = graphene.String()
-        due_date = graphene.DateTime()
+        project_id = graphene.ID(required=True, description="ID of the project to create the task in")
+        title = graphene.String(required=True, description="Title of the task")
+        description = graphene.String(description="Detailed description of the task")
+        assignee_email = graphene.String(description="Email of the person assigned to this task")
+        due_date = graphene.DateTime(description="Due date for task completion")
 
-    task = graphene.Field(TaskType)
-    success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+    task = graphene.Field(TaskType, description="The created task object")
+    success = graphene.Boolean(description="Whether the task was created successfully")
+    errors = graphene.List(graphene.String, description="List of error messages if creation failed")
 
     def mutate(self, info, project_id, title, description="", assignee_email="", due_date=None):
         try:
@@ -95,16 +113,20 @@ class CreateTask(graphene.Mutation):
 
 
 class UpdateTask(graphene.Mutation):
+    """
+    Updates an existing task. Only provided fields will be updated; omitted fields remain unchanged.
+    The task status is not updated through this mutation - use UpdateTaskStatus for status changes.
+    """
     class Arguments:
-        id = graphene.ID(required=True)
-        title = graphene.String()
-        description = graphene.String()
-        assignee_email = graphene.String()
-        due_date = graphene.DateTime()
+        id = graphene.ID(required=True, description="ID of the task to update")
+        title = graphene.String(description="New title for the task")
+        description = graphene.String(description="New description for the task")
+        assignee_email = graphene.String(description="New assignee email for the task")
+        due_date = graphene.DateTime(description="New due date for the task")
 
-    task = graphene.Field(TaskType)
-    success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+    task = graphene.Field(TaskType, description="The updated task object")
+    success = graphene.Boolean(description="Whether the task was updated successfully")
+    errors = graphene.List(graphene.String, description="List of error messages if update failed")
 
     def mutate(self, info, id, title=None, description=None, assignee_email=None, due_date=None):
         try:
@@ -141,13 +163,17 @@ class UpdateTask(graphene.Mutation):
 
 
 class UpdateTaskStatus(graphene.Mutation):
+    """
+    Updates the status of a task. This mutation is specifically designed for drag-and-drop operations
+    in the task board interface. Valid statuses are: TODO, IN_PROGRESS, DONE.
+    """
     class Arguments:
-        id = graphene.ID(required=True)
-        status = graphene.String(required=True)
+        id = graphene.ID(required=True, description="ID of the task to update")
+        status = graphene.String(required=True, description="New status: TODO, IN_PROGRESS, or DONE")
 
-    task = graphene.Field(TaskType)
-    success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+    task = graphene.Field(TaskType, description="The updated task object")
+    success = graphene.Boolean(description="Whether the status was updated successfully")
+    errors = graphene.List(graphene.String, description="List of error messages if update failed")
 
     def mutate(self, info, id, status):
         try:
@@ -185,14 +211,18 @@ class UpdateTaskStatus(graphene.Mutation):
 
 
 class AddTaskComment(graphene.Mutation):
+    """
+    Adds a comment to a task. Comments enable team collaboration and communication on specific tasks.
+    Comments are automatically timestamped and cannot be edited or deleted once created.
+    """
     class Arguments:
-        task_id = graphene.ID(required=True)
-        content = graphene.String(required=True)
-        author_email = graphene.String(required=True)
+        task_id = graphene.ID(required=True, description="ID of the task to comment on")
+        content = graphene.String(required=True, description="Content of the comment")
+        author_email = graphene.String(required=True, description="Email of the comment author")
 
-    comment = graphene.Field(TaskCommentType)
-    success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+    comment = graphene.Field(TaskCommentType, description="The created comment object")
+    success = graphene.Boolean(description="Whether the comment was added successfully")
+    errors = graphene.List(graphene.String, description="List of error messages if creation failed")
 
     def mutate(self, info, task_id, content, author_email):
         try:
@@ -224,7 +254,11 @@ class AddTaskComment(graphene.Mutation):
 
 
 class Mutation(graphene.ObjectType):
-    create_task = CreateTask.Field()
-    update_task = UpdateTask.Field()
-    update_task_status = UpdateTaskStatus.Field()
-    add_task_comment = AddTaskComment.Field()
+    """
+    Task-related mutations for creating, updating, and managing tasks and comments.
+    All mutations follow the same pattern with success/errors fields for consistent error handling.
+    """
+    create_task = CreateTask.Field(description="Create a new task in a project")
+    update_task = UpdateTask.Field(description="Update task details (title, description, assignee, due date)")
+    update_task_status = UpdateTaskStatus.Field(description="Update task status for drag-and-drop operations")
+    add_task_comment = AddTaskComment.Field(description="Add a comment to a task for team collaboration")

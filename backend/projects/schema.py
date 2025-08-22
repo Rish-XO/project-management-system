@@ -6,45 +6,60 @@ from organizations.models import Organization
 
 
 class ProjectType(DjangoObjectType):
-    task_count = graphene.Int()
-    completed_tasks = graphene.Int()
-    completion_percentage = graphene.Float()
+    """
+    Represents a project within an organization. Projects contain tasks and have status tracking.
+    Projects can be in ACTIVE, COMPLETED, or ON_HOLD status.
+    """
+    task_count = graphene.Int(description="Total number of tasks in this project")
+    completed_tasks = graphene.Int(description="Number of completed tasks in this project")
+    completion_percentage = graphene.Float(description="Percentage of completed tasks (0-100)")
 
     class Meta:
         model = Project
         fields = ("id", "name", "description", "status", "due_date", "created_at", "updated_at", "organization")
+        description = "A project within an organization that contains tasks and tracks progress"
 
     def resolve_task_count(self, info):
+        """Get total number of tasks in this project"""
         return self.task_count
 
     def resolve_completed_tasks(self, info):
+        """Get number of completed tasks in this project"""
         return self.completed_tasks
 
     def resolve_completion_percentage(self, info):
+        """Calculate completion percentage based on completed vs total tasks"""
         return self.completion_percentage
 
 
 class ProjectStatisticsType(graphene.ObjectType):
-    project_id = graphene.ID()
-    total_tasks = graphene.Int()
-    completed_tasks = graphene.Int()
-    in_progress_tasks = graphene.Int()
-    todo_tasks = graphene.Int()
-    completion_percentage = graphene.Float()
+    """
+    Detailed statistics for a project including task breakdown by status.
+    Useful for dashboards and project progress visualization.
+    """
+    project_id = graphene.ID(description="ID of the project these statistics belong to")
+    total_tasks = graphene.Int(description="Total number of tasks in the project")
+    completed_tasks = graphene.Int(description="Number of tasks with DONE status")
+    in_progress_tasks = graphene.Int(description="Number of tasks with IN_PROGRESS status")
+    todo_tasks = graphene.Int(description="Number of tasks with TODO status")
+    completion_percentage = graphene.Float(description="Percentage of completion (0-100)")
 
 
 class Query(graphene.ObjectType):
     projects_by_organization = graphene.List(
         ProjectType,
-        organization_slug=graphene.String(required=True)
+        organization_slug=graphene.String(required=True, description="Slug of the organization to retrieve projects from"),
+        description="Retrieve all projects for a specific organization"
     )
     project_detail = graphene.Field(
         ProjectType,
-        id=graphene.ID(required=True)
+        id=graphene.ID(required=True, description="ID of the project to retrieve"),
+        description="Retrieve detailed information about a specific project including tasks"
     )
     project_statistics = graphene.Field(
         ProjectStatisticsType,
-        project_id=graphene.ID(required=True)
+        project_id=graphene.ID(required=True, description="ID of the project to get statistics for"),
+        description="Get detailed task statistics for a project (total, completed, in progress, etc.)"
     )
 
     def resolve_projects_by_organization(self, info, organization_slug):
@@ -87,16 +102,20 @@ class Query(graphene.ObjectType):
 
 
 class CreateProject(graphene.Mutation):
+    """
+    Creates a new project within an organization. Projects are created with ACTIVE status by default.
+    Valid status values are: ACTIVE, COMPLETED, ON_HOLD.
+    """
     class Arguments:
-        organization_id = graphene.ID(required=True)
-        name = graphene.String(required=True)
-        description = graphene.String()
-        status = graphene.String()
-        due_date = graphene.Date()
+        organization_id = graphene.ID(required=True, description="ID of the organization to create the project in")
+        name = graphene.String(required=True, description="Name of the project")
+        description = graphene.String(description="Detailed description of the project")
+        status = graphene.String(description="Project status: ACTIVE, COMPLETED, or ON_HOLD (default: ACTIVE)")
+        due_date = graphene.Date(description="Due date for project completion")
 
-    project = graphene.Field(ProjectType)
-    success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+    project = graphene.Field(ProjectType, description="The created project object")
+    success = graphene.Boolean(description="Whether the project was created successfully")
+    errors = graphene.List(graphene.String, description="List of error messages if creation failed")
 
     def mutate(self, info, organization_id, name, description="", status="ACTIVE", due_date=None):
         try:
@@ -139,16 +158,20 @@ class CreateProject(graphene.Mutation):
 
 
 class UpdateProject(graphene.Mutation):
+    """
+    Updates an existing project. Only provided fields will be updated; omitted fields remain unchanged.
+    Status validation is enforced - only ACTIVE, COMPLETED, ON_HOLD values are accepted.
+    """
     class Arguments:
-        id = graphene.ID(required=True)
-        name = graphene.String()
-        description = graphene.String()
-        status = graphene.String()
-        due_date = graphene.Date()
+        id = graphene.ID(required=True, description="ID of the project to update")
+        name = graphene.String(description="New name for the project")
+        description = graphene.String(description="New description for the project")
+        status = graphene.String(description="New status: ACTIVE, COMPLETED, or ON_HOLD")
+        due_date = graphene.Date(description="New due date for the project")
 
-    project = graphene.Field(ProjectType)
-    success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+    project = graphene.Field(ProjectType, description="The updated project object")
+    success = graphene.Boolean(description="Whether the project was updated successfully")
+    errors = graphene.List(graphene.String, description="List of error messages if update failed")
 
     def mutate(self, info, id, name=None, description=None, status=None, due_date=None):
         try:
@@ -192,5 +215,9 @@ class UpdateProject(graphene.Mutation):
 
 
 class Mutation(graphene.ObjectType):
-    create_project = CreateProject.Field()
-    update_project = UpdateProject.Field()
+    """
+    Project-related mutations for creating and updating projects within organizations.
+    All mutations follow the same pattern with success/errors fields for consistent error handling.
+    """
+    create_project = CreateProject.Field(description="Create a new project in an organization")
+    update_project = UpdateProject.Field(description="Update project details (name, description, status, due date)")

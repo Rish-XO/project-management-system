@@ -4,16 +4,25 @@ from .models import Organization
 
 
 class OrganizationType(DjangoObjectType):
+    """
+    Represents an organization that serves as a multi-tenant container for projects and tasks.
+    Organizations provide data isolation and manage teams and projects within their scope.
+    """
     class Meta:
         model = Organization
         fields = ("id", "name", "slug", "contact_email", "created_at")
+        description = "An organization that contains projects and provides multi-tenant data isolation"
 
 
 class Query(graphene.ObjectType):
-    organization_list = graphene.List(OrganizationType)
+    organization_list = graphene.List(
+        OrganizationType,
+        description="Retrieve all organizations in the system"
+    )
     organization_detail = graphene.Field(
         OrganizationType, 
-        slug=graphene.String(required=True)
+        slug=graphene.String(required=True, description="Unique slug identifier for the organization"),
+        description="Retrieve detailed information about a specific organization by slug"
     )
 
     def resolve_organization_list(self, info):
@@ -27,13 +36,17 @@ class Query(graphene.ObjectType):
 
 
 class CreateOrganization(graphene.Mutation):
+    """
+    Creates a new organization with auto-generated slug based on the organization name.
+    Organizations must have unique names and valid contact email addresses.
+    """
     class Arguments:
-        name = graphene.String(required=True)
-        contact_email = graphene.String(required=True)
+        name = graphene.String(required=True, description="Name of the organization (must be unique)")
+        contact_email = graphene.String(required=True, description="Contact email for the organization")
 
-    organization = graphene.Field(OrganizationType)
-    success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+    organization = graphene.Field(OrganizationType, description="The created organization object")
+    success = graphene.Boolean(description="Whether the organization was created successfully")
+    errors = graphene.List(graphene.String, description="List of error messages if creation failed")
 
     def mutate(self, info, name, contact_email):
         try:
@@ -55,14 +68,18 @@ class CreateOrganization(graphene.Mutation):
 
 
 class UpdateOrganization(graphene.Mutation):
+    """
+    Updates an existing organization. Only provided fields will be updated; omitted fields remain unchanged.
+    Note: The organization slug is auto-generated from the name and cannot be updated directly.
+    """
     class Arguments:
-        id = graphene.ID(required=True)
-        name = graphene.String()
-        contact_email = graphene.String()
+        id = graphene.ID(required=True, description="ID of the organization to update")
+        name = graphene.String(description="New name for the organization")
+        contact_email = graphene.String(description="New contact email for the organization")
 
-    organization = graphene.Field(OrganizationType)
-    success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+    organization = graphene.Field(OrganizationType, description="The updated organization object")
+    success = graphene.Boolean(description="Whether the organization was updated successfully")
+    errors = graphene.List(graphene.String, description="List of error messages if update failed")
 
     def mutate(self, info, id, name=None, contact_email=None):
         try:
@@ -95,5 +112,9 @@ class UpdateOrganization(graphene.Mutation):
 
 
 class Mutation(graphene.ObjectType):
-    create_organization = CreateOrganization.Field()
-    update_organization = UpdateOrganization.Field()
+    """
+    Organization-related mutations for managing multi-tenant organizations.
+    Organizations serve as containers for projects and provide data isolation.
+    """
+    create_organization = CreateOrganization.Field(description="Create a new organization with auto-generated slug")
+    update_organization = UpdateOrganization.Field(description="Update organization details (name, contact email)")
